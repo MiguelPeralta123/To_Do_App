@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TextInput, Alert, Text, TouchableOpacity, Modal } from 'react-native';
+import { ScrollView, View, StyleSheet, TextInput, Alert, Text, TouchableOpacity, Image, Modal } from 'react-native';
 import Checkbox from 'expo-checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector, useDispatch } from 'react-redux';
@@ -24,11 +24,12 @@ const Task = ({ navigation, route }) => {
     const { tasks, taskID } = useSelector(state => state.taskReducer)
     const dispatch = useDispatch()
 
-    const { myTaskID } = route.params
+    const { myTaskID, imagePath } = route.params
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [color, setColor] = useState(undefined);
+    const [image, setImage] = useState('');
     const [done, setDone] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [minutes, setMinutes] = useState('');
@@ -40,23 +41,10 @@ const Task = ({ navigation, route }) => {
     const responseListener = useRef();
 
     useEffect(() => {
-        getTasks()
-        if (myTaskID > 0) {
-            const task = tasks.find(currentTask => {
-                return currentTask.taskID === myTaskID
-            })
-            if (task) {
-                dispatch(setTaskID(myTaskID))
-                setTitle(task.title)
-                setDescription(task.description)
-                setColor(task.color)
-                setDone(task.done)
-            }
-        }
-        else {
-            dispatch(setTaskID(tasks.length + 1))
-        }
-
+        navigation.addListener('focus', () => {
+            getTasks()
+        })
+        
         // PUSH NOTIFICATIONS
         registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -72,20 +60,25 @@ const Task = ({ navigation, route }) => {
     }, [])
 
     const getTasks = () => {
-        try {
-            AsyncStorage.getItem('tasks')
-                .then(tasks => {
-                    if (tasks !== null) {
-                        const parsedTasks = JSON.parse(tasks)
-                        if (parsedTasks && typeof parsedTasks === 'object') {
-                            dispatch(setTasks(parsedTasks))
-                        }
-                    }
-                })
-                .catch(error => console.log(error))
+        if (myTaskID > 0) {
+            const task = tasks.find(currentTask => {
+                return currentTask.taskID === myTaskID
+            })
+            if (task) {
+                dispatch(setTaskID(myTaskID))
+                setTitle(task.title)
+                setDescription(task.description)
+                setColor(task.color)
+                setImage(task.image)
+                setDone(task.done)
+            }
         }
-        catch (error) {
-            console.log(error)
+        else {
+            dispatch(setTaskID(tasks.length + 1))
+            if (imagePath) {
+                setImage(imagePath)
+                console.log('Hola desde setImage')
+            }
         }
     }
 
@@ -104,6 +97,7 @@ const Task = ({ navigation, route }) => {
                 title: title,
                 description: description,
                 color: color,
+                image: image,
                 done: done,
             }
             let successText
@@ -156,6 +150,10 @@ const Task = ({ navigation, route }) => {
         }
     }
 
+    const deleteImage = () => {
+        setImage(undefined)
+    }
+
     // PUSH NOTIFICATIONS
     async function schedulePushNotification() {
         await Notifications.scheduleNotificationAsync({
@@ -197,116 +195,177 @@ const Task = ({ navigation, route }) => {
     }
 
     return (
-        <View style={[styles.body, { backgroundColor: color }]}>
-            <Modal
-                animationType='fade'
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modal}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalText}>Remind me after</Text>
-                            <TextInput
-                                style={styles.modalInput}
-                                value={minutes}
-                                keyboardType='numeric'
-                                onChangeText={value => setMinutes(value)}
-                            />
-                            <Text style={styles.modalText}>minutes</Text>
-                        </View>
+        <ScrollView>
+            <View style={styles.body}>
+                <Modal
+                    animationType='fade'
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modal}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalText}>Remind me after</Text>
+                                <TextInput
+                                    style={styles.modalInput}
+                                    value={minutes}
+                                    keyboardType='numeric'
+                                    onChangeText={value => setMinutes(value)}
+                                />
+                                <Text style={styles.modalText}>minutes</Text>
+                            </View>
 
-                        <View style={styles.modalButtonsContainer}>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, { borderBottomLeftRadius: 20 }]}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <Text style={[styles.modalButtonText, { color: 'red' }]}>Cancel</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={[styles.modalButton, { borderBottomRightRadius: 20 }]}
-                                onPress={scheduleNotification}
-                            >
-                                <Text style={[styles.modalButtonText, { color: 'dodgerblue' }]}>Ok</Text>
-                            </TouchableOpacity>
+                            <View style={styles.modalButtonsContainer}>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, { borderBottomLeftRadius: 20 }]}
+                                    onPress={() => setModalVisible(false)}
+                                >
+                                    <Text style={[styles.modalButtonText, { color: 'red' }]}>Cancel</Text>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, { borderBottomRightRadius: 20 }]}
+                                    onPress={scheduleNotification}
+                                >
+                                    <Text style={[styles.modalButtonText, { color: 'dodgerblue' }]}>Ok</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-            <TextInput 
-                style={styles.title} 
-                placeholder='Title' 
-                value={title}
-                onChangeText={value => setTitle(value)}
-            />
-
-            <TextInput 
-                style={styles.description} 
-                placeholder='Description' 
-                value={description}
-                onChangeText={value => setDescription(value)}
-                multiline 
-            />
-
-            <View style={styles.colorContainer}>
-                <Text style={styles.colorText}>Color</Text>
-                <View style={styles.colorButtons}>
-                    <TouchableOpacity 
-                        style={styles.colorButtonYellow} 
-                        onPress={() => setColor('lightyellow')}>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={styles.colorButtonBlue}
-                        onPress={() => setColor('lightblue')}>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={styles.colorButtonPink}
-                        onPress={() => setColor('lightpink')}>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={styles.colorButtonGreen}
-                        onPress={() => setColor('lightgreen')}>
-                    </TouchableOpacity>
-                </View>
-            </View>
-            
-            <View style={styles.taskButtonsContainer}>
-                <TouchableOpacity 
-                    style={styles.taskButton}
-                    onPress={() => setModalVisible(true)}
-                >
-                    <MaterialCommunityIcons name="bell-outline" size={24} color="white" />
-                    <Text style={styles.btnReminderText}>Set reminder</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={styles.taskButton}
-                    onPress={() => navigation.navigate('Camera')}
-                >
-                    <Feather name="camera" size={24} color="white" />
-                    <Text style={styles.btnReminderText}>Take photo</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.checkboxContainer}>
-                <Checkbox 
-                    value={done} 
-                    onValueChange={setDone} 
-                    color={done ? 'dodgerblue' : undefined}
+                <TextInput 
+                    style={styles.title} 
+                    placeholder='Title' 
+                    value={title}
+                    onChangeText={value => setTitle(value)}
                 />
-                <Text style={
-                    {fontSize: 15, color: done ? 'dodgerblue' : undefined}}>Done</Text>
-            </View>
 
-            <CustomButton 
-                title='Save' 
-                styles={{backgroundColor: 'dodgerblue', marginTop: 20}} 
-                handlePress={saveTask}
-            />
-        </View>
+                <TextInput 
+                    style={styles.description} 
+                    placeholder='Description' 
+                    value={description}
+                    onChangeText={value => setDescription(value)}
+                    multiline 
+                />
+
+                <View style={styles.colorContainer}>
+                    <Text style={styles.colorText}>Color</Text>
+                    <View style={styles.colorButtons}>
+                        <TouchableOpacity 
+                            style={styles.colorButtonYellow} 
+                            onPress={() => setColor('lightyellow')}>
+                            {
+                                color == 'lightyellow' ? 
+                                <View style={
+                                    [styles.colorChecked, 
+                                    { borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]
+                                }>
+                                    <Feather name="check" size={35} color="white" />
+                                </View>
+                                :
+                                null
+                            }
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.colorButtonBlue}
+                            onPress={() => setColor('lightblue')}>
+                            {
+                                color == 'lightblue' ? 
+                                <View style={styles.colorChecked}>
+                                    <Feather name="check" size={35} color="white" />
+                                </View>
+                                :
+                                null
+                            }
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.colorButtonPink}
+                            onPress={() => setColor('lightpink')}>
+                            {
+                                color == 'lightpink' ? 
+                                <View style={styles.colorChecked}>
+                                    <Feather name="check" size={35} color="white" />
+                                </View>
+                                :
+                                null
+                            }
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.colorButtonGreen}
+                            onPress={() => setColor('lightgreen')}>
+                            {
+                                color == 'lightgreen' ? 
+                                <View style={
+                                    [styles.colorChecked, 
+                                    { borderTopRightRadius: 10, borderBottomRightRadius: 10 }]
+                                }>
+                                    <Feather name="check" size={35} color="white" />
+                                </View>
+                                :
+                                null
+                            }
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.taskButtonsContainer}>
+                    <TouchableOpacity 
+                        style={myTaskID > 0 ? styles.taskButton : styles.taskButtonFullWidth}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <MaterialCommunityIcons name="bell-outline" size={24} color="white" />
+                        <Text style={styles.btnReminderText}>Set reminder</Text>
+                    </TouchableOpacity>
+                    
+                    {
+                        myTaskID > 0 ? 
+                        <TouchableOpacity 
+                            style={styles.taskButton}
+                            onPress={() => navigation.navigate('Camera', { 
+                                myTaskID: taskID
+                            })}
+                        >
+                            <Feather name="camera" size={24} color="white" />
+                            <Text style={styles.btnReminderText}>Take photo</Text>
+                        </TouchableOpacity>
+                        :
+                        null
+                    }
+                </View>
+
+                {image ? 
+                    <View style={styles.imageContainer}>
+                        <Image style={styles.image} source={{ uri: image }} />
+                        <TouchableOpacity 
+                            style={styles.deleteButton}
+                            onPress={deleteImage}
+                        >
+                            <Feather name="trash-2" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View> 
+                    : 
+                    null
+                }
+
+                <View style={styles.checkboxContainer}>
+                    <Checkbox 
+                        value={done} 
+                        onValueChange={setDone} 
+                        color={done ? 'dodgerblue' : undefined}
+                    />
+                    <Text style={
+                        {fontSize: 15, color: done ? 'dodgerblue' : undefined}}>Done</Text>
+                </View>
+
+                <CustomButton 
+                    title='Save' 
+                    styles={{backgroundColor: 'dodgerblue', marginTop: 20}} 
+                    handlePress={saveTask}
+                />
+            </View>
+        </ScrollView>
     );
 }
 
@@ -403,6 +462,13 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 10,
     },
+    colorChecked: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#00000040',
+    },
     colorButtonYellow: {
         width: '25%',
         height: 50,
@@ -443,9 +509,38 @@ const styles = StyleSheet.create({
         backgroundColor: 'green',
         borderRadius: 15,
     },
+    taskButtonFullWidth: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 20,
+        padding: 10,
+        backgroundColor: 'green',
+        borderRadius: 15,
+    },
     btnReminderText: {
         fontSize: 16,
         color: 'white',
+    },
+    imageContainer: {
+        width: 250,
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    image: {
+        width: '100%',
+        height: 250,
+        borderRadius: 15,
+    },
+    deleteButton: {
+        position: 'absolute',
+        bottom: 10,
+        right: 10,
+        padding: 10,
+        borderRadius: 10,
+        backgroundColor: '#FF000080',
     },
     checkboxContainer: {
         display: 'flex',

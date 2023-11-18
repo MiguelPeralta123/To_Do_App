@@ -1,13 +1,22 @@
 import { Camera } from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export default function App() {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSelector, useDispatch } from 'react-redux';
+import { setTasks, setTaskID } from '../redux/actions';
+
+export default function App({ navigation, route }) {
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [camera, setCamera] = useState(null);
+
+  const { tasks, taskID } = useSelector(state => state.taskReducer)
+  const dispatch = useDispatch()
+
+  const { myTaskID } = route.params
 
   const requestCameraPermission = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
@@ -38,16 +47,18 @@ export default function App() {
 
   const handleCapture = async () => {
     if (camera) {
-      const photo = await camera.takePictureAsync();
-      if (photo) {
-        // Save the captured photo to the device's media library
-        //const asset = await MediaLibrary.createAssetAsync(photo.uri);
-
-        // You can access the saved photo's URI via asset.uri
-        // TODO Instead of printing the photo path, save it as a task property, go back to task component and display the photo below the camera button
-        //console.log('Photo captured and saved:', asset.uri);
-        const photoPath = photo.uri
-        console.log(photoPath)
+      const image = await camera.takePictureAsync();
+      if (image) {
+        const imagePath = image.uri
+        const taskIndex = tasks.findIndex(currentTask => currentTask.taskID === myTaskID)
+        if (taskIndex > -1) {
+          tasks[taskIndex].image = imagePath
+          dispatch(setTasks(tasks))
+          AsyncStorage.setItem('tasks', JSON.stringify(tasks))
+              .then(result => Alert.alert('Success', 'Photo saved successfully'))
+              .catch(error => Alert.alert('Error', 'Failed saving the photo, try again later\n' + error))
+        }
+        navigation.goBack()
       }
     }
   };
