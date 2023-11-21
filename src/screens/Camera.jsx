@@ -55,7 +55,7 @@ export default function App({ navigation, route }) {
           tasks[taskIndex].image = imagePath
           dispatch(setTasks(tasks))
           AsyncStorage.setItem('tasks', JSON.stringify(tasks))
-              .then(result => Alert.alert('Success', 'Photo saved successfully'))
+              .then(/*result => Alert.alert('Success', 'Photo saved successfully')*/)
               .catch(error => Alert.alert('Error', 'Failed saving the photo, try again later\n' + error))
         }
         navigation.goBack()

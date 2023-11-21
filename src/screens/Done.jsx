@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, FlatList, Text, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Modal, TouchableOpacity, FlatList, Text, Alert } from 'react-native';
 import Checkbox from 'expo-checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector, useDispatch } from 'react-redux';
@@ -11,6 +11,9 @@ const Done = ({ navigation }) => {
 
     const { tasks } = useSelector(state => state.taskReducer)
     const dispatch = useDispatch()
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [deleteTaskID, setDeleteTaskID] = useState(0);
 
     useEffect(() => {
         getTasks()
@@ -42,10 +45,13 @@ const Done = ({ navigation }) => {
 
     const deleteTask = myTaskID => {
         const filteredTasks = tasks.filter(currentTask => currentTask.taskID !== myTaskID)
+        for (let i = 0; i < filteredTasks.length; i++) {
+            filteredTasks[i].taskID = i + 1
+        }
         dispatch(setTasks(filteredTasks))
         AsyncStorage.setItem('tasks', JSON.stringify(filteredTasks))
-            .then(result => Alert.alert('Success', 'The task has been deleted'))
-            .catch(error => Alert.alert('Error', 'Failed deleting the task: ' + error))
+            .then(setModalVisible(false))
+            .catch(error => Alert.alert('Error', 'Failed deleting the task\n' + error))
     }
 
     const setDone = myTaskID => {
@@ -53,12 +59,43 @@ const Done = ({ navigation }) => {
         tasks[taskIndex].done = !tasks[taskIndex].done
         dispatch(setTasks(tasks))
         AsyncStorage.setItem('tasks', JSON.stringify(tasks))
-            .then(result => Alert.alert('Success', 'The task has been updated'))
-            .catch(error => Alert.alert('Error', 'Failed updating the task: ' + error))
+            .then(/*result => Alert.alert('Success', 'The task has been updated')*/)
+            .catch(error => Alert.alert('Error', 'Failed updating the task\n' + error))
     }
 
     return (
         <View style={styles.body}>
+            <Modal
+                animationType='fade'
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modal}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalText}>Delete the task?</Text>
+                        </View>
+
+                        <View style={styles.modalButtonsContainer}>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, { borderBottomLeftRadius: 20 }]}
+                                onPress={() => setModalVisible(false)}
+                            >
+                                <Text style={[styles.modalButtonText, { color: 'red' }]}>Cancel</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={[styles.modalButton, { borderBottomRightRadius: 20 }]}
+                                onPress={() => deleteTask(deleteTaskID)}
+                            >
+                                <Text style={[styles.modalButtonText, { color: 'dodgerblue' }]}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <FlatList
                 data={tasks.filter(task => task.done === true)}
                 keyExtractor={(item, index) => index.toString()}
@@ -90,7 +127,10 @@ const Done = ({ navigation }) => {
                         </TouchableOpacity>
                         <TouchableOpacity 
                             style={styles.deleteButton}
-                            onPress={() => deleteTask(item.taskID)}>
+                            onPress={() => {
+                                setDeleteTaskID(item.taskID)
+                                setModalVisible(true)
+                            }}>
                             <Feather name="trash-2" size={24} color="red" />
                         </TouchableOpacity>
                     </View>
@@ -108,6 +148,42 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    modalContainer: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#00000090',
+    },
+    modal: {
+        width: 350,
+        height: 150,
+        backgroundColor: 'white',
+        borderRadius: 20,
+    },
+    modalContent: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalText: {
+        fontSize: 22,
+    },
+    modalButtonsContainer: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-around'
+    },
+    modalButton: {
+        width: '50%',
+        padding: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'lightgray',
+    },
+    modalButtonText: {
+        fontSize: 20,
     },
     button: {
         position: 'absolute',

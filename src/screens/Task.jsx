@@ -107,17 +107,17 @@ const Task = ({ navigation, route }) => {
                 const taskIndex = tasks.findIndex(currentTask => currentTask.taskID === myTaskID)
                 tasks[taskIndex] = newTask
                 successText = 'Task updated successfully'
-                errorText = 'Failed updating the task: '
+                errorText = 'Failed updating the task\n'
             }
             // Else, add it to the tasks array
             else {
                 tasks.push(newTask)
                 successText = 'Task created successfully'
-                errorText = 'Failed creating the task: '
+                errorText = 'Failed creating the task\n'
             }
             dispatch(setTasks(tasks))
             AsyncStorage.setItem('tasks', JSON.stringify(tasks))
-                .then(result => Alert.alert('Success', successText))
+                .then(/*result => Alert.alert('Success', successText)*/)
                 .catch(error => Alert.alert('Error', errorText + error))
             navigation.navigate('My Tasks')
         }
@@ -128,16 +128,16 @@ const Task = ({ navigation, route }) => {
 
     const scheduleNotification = async () => {
         if (minutes.length < 1) {
-            Alert.alert('Warning', 'Enter a valid value for minutes')
+            Alert.alert('Warning', 'Please write a valid value for minutes')
             return
         }
         if (title.length < 1) {
-            Alert.alert('Warning', 'Enter a valid task title')
+            Alert.alert('Warning', 'Please write a title')
             setModalVisible(false)
             return
         }
         if (description.length < 1) {
-            Alert.alert('Warning', 'Enter a valid task description')
+            Alert.alert('Warning', 'Please write a description')
             setModalVisible(false)
             return
         }
@@ -146,7 +146,7 @@ const Task = ({ navigation, route }) => {
             await schedulePushNotification()
             Alert.alert('Success', 'The remainder will be sent in ' + minutes + ' minutes')
         } catch (error) {
-            Alert.alert('Warning', 'Failed sending push notification: ' + error)
+            Alert.alert('Warning', 'Failed setting the remainder\n' + error)
         }
     }
 
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#00000080',
+        backgroundColor: '#00000090',
     },
     modal: {
         width: 350,
