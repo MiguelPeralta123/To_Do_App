@@ -96,46 +96,54 @@ const ToDo = ({ navigation }) => {
                 </View>
             </Modal>
 
-            <FlatList
-                data={tasks.filter(task => task.done === false)}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                    <View style={[styles.card, { backgroundColor: item.color }]}>
-                        <View style={styles.checkboxContainer}>
-                            <Checkbox 
-                                value={item.done} 
-                                onValueChange={() => setDone(item.taskID)} 
-                                style={styles.checkbox}
-                                color={item.done ? 'dodgerblue' : undefined}
-                            />
-                        </View>
-                        <TouchableOpacity
-                            style={styles.cardContent}
-                            onPress={() => openTask(item.taskID)}>
-                            <View style={styles.cardTextContainer}>
-                                <Text
-                                    style={styles.cardTitle}
-                                    numberOfLines={1}>
-                                    {item.title}
-                                </Text>
-                                <Text
-                                    style={styles.cardText}
-                                    numberOfLines={1}>
-                                    {item.description}
-                                </Text>
+            {
+                tasks.filter(task => task.done === false).length > 0 ?
+                <FlatList
+                    data={tasks.filter(task => task.done === false)}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({ item }) => (
+                        <View style={[styles.card, { backgroundColor: item.color }]}>
+                            <View style={styles.checkboxContainer}>
+                                <Checkbox 
+                                    value={item.done} 
+                                    onValueChange={() => setDone(item.taskID)} 
+                                    style={styles.checkbox}
+                                    color={item.done ? 'dodgerblue' : undefined}
+                                />
                             </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={styles.deleteButton}
-                            onPress={() => {
-                                setDeleteTaskID(item.taskID)
-                                setModalVisible(true)
-                            }}>
-                            <Feather name="trash-2" size={24} color="red" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            />
+                            <TouchableOpacity
+                                style={styles.cardContent}
+                                onPress={() => openTask(item.taskID)}>
+                                <View style={styles.cardTextContainer}>
+                                    <Text
+                                        style={styles.cardTitle}
+                                        numberOfLines={1}>
+                                        {item.title}
+                                    </Text>
+                                    <Text
+                                        style={styles.cardText}
+                                        numberOfLines={1}>
+                                        {item.description}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={styles.deleteButton}
+                                onPress={() => {
+                                    setDeleteTaskID(item.taskID)
+                                    setModalVisible(true)
+                                }}>
+                                <Feather name="trash-2" size={24} color="red" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                />
+                :
+                <View>
+                    <Text style={styles.noTasksText}>You don't have any tasks, create one by pressing the + button</Text>
+                </View>
+            }
+            
             <TouchableOpacity style={styles.button} onPress={() => openTask(0)}>
                 <Entypo name="plus" size={40} color="white" />
             </TouchableOpacity>
@@ -230,6 +238,13 @@ const styles = StyleSheet.create({
     checkboxContainer: {
         justifyContent: 'center',
         marginLeft: 15,
+    },
+    noTasksText: {
+        marginHorizontal: 20,
+        textAlign: 'center',
+        fontSize: 20,
+        fontStyle: 'italic',
+        color: 'gray',
     },
 })
 
